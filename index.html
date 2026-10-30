@@ -13,157 +13,352 @@
 
   <!-- Manifest & Theme Color -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#6366F1">
+  <meta name="theme-color" content="#5B4DBC">
 
   <!-- CDN: Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
     body { 
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+      font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif; 
       -webkit-tap-highlight-color: transparent; 
+      background-color: #FAF9FE;
     }
     .pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
-    .pt-safe { padding-top: env(safe-area-inset-top, 16px); }
+    .pt-safe { padding-top: env(safe-area-inset-top, 12px); }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+<body class="text-slate-800 min-h-screen flex flex-col pb-20">
 
   <!-- แถบด้านบน (Header Bar) -->
-  <header class="bg-white/95 backdrop-blur sticky top-0 z-20 border-b border-slate-100 px-5 py-3 pt-safe flex justify-between items-center shadow-sm">
+  <header class="bg-white/95 backdrop-blur sticky top-0 z-30 border-b border-purple-100/60 px-5 py-3 pt-safe flex justify-between items-center shadow-sm">
     <div>
-      <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">TCAS Mate</h1>
-      <p class="text-xs text-slate-400">ระบบติดตามการสมัครเข้าศึกษาต่อ</p>
+      <h1 class="text-xl font-bold text-slate-900 tracking-tight">TCAS Mate</h1>
+      <p class="text-[11px] text-slate-500">ระบบติดตามการสมัครเข้าศึกษาต่อ</p>
     </div>
-    <div class="flex gap-2">
-      <button onclick="openSettingsModal()" class="p-2 text-slate-400 hover:text-indigo-600 rounded-full hover:bg-slate-50 transition" title="ตั้งค่าเชื่อมต่อ">
-        <i data-lucide="settings" class="w-5 h-5"></i>
+    <div class="flex items-center gap-1">
+      <button onclick="openAlertModal()" class="relative p-2 text-slate-600 hover:text-purple-700 rounded-full hover:bg-purple-50 transition" title="แจ้งเตือนกำหนดการ">
+        <i data-lucide="bell-ring" class="w-5 h-5"></i>
+        <span id="alertBadge" class="hidden absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
       </button>
-      <button onclick="fetchData()" class="p-2 text-slate-400 hover:text-indigo-600 rounded-full hover:bg-slate-50 transition" title="รีเฟรชข้อมูล">
-        <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+      <button onclick="fetchData()" class="p-2 text-slate-600 hover:text-purple-700 rounded-full hover:bg-purple-50 transition" title="รีเฟรชข้อมูล">
+        <i data-lucide="refresh-cw" id="refreshIcon" class="w-5 h-5"></i>
+      </button>
+      <button onclick="openSettingsModal()" class="p-2 text-slate-600 hover:text-purple-700 rounded-full hover:bg-purple-50 transition" title="ตั้งค่า URL">
+        <i data-lucide="settings" class="w-5 h-5"></i>
       </button>
     </div>
   </header>
 
-  <!-- พื้นที่เนื้อหาหลัก -->
-  <main class="flex-1 max-w-md mx-auto w-full p-4 space-y-4">
+  <!-- ==================== TAB 1: หน้าโครงการ (PROJECTS) ==================== -->
+  <main id="tab-projects" class="flex-1 max-w-md mx-auto w-full p-4 space-y-4">
+    
+    <!-- แบนเนอร์แจ้งเตือนด่วน -->
+    <div id="urgentBanner" onclick="openAlertModal()" class="hidden bg-gradient-to-r from-rose-500 to-amber-500 text-white rounded-2xl p-3.5 shadow-sm cursor-pointer flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="bg-white/20 p-2 rounded-xl"><i data-lucide="alarm-clock" class="w-5 h-5"></i></div>
+        <div>
+          <div id="urgentTitle" class="text-xs font-bold">มีกำหนดการใกล้ถึง!</div>
+          <div id="urgentSub" class="text-[11px] text-white/90">แตะเพื่อดูรายละเอียดทั้งหมด</div>
+        </div>
+      </div>
+      <i data-lucide="chevron-right" class="w-4 h-4"></i>
+    </div>
+
     <!-- แดชบอร์ดสรุปยอดสถานะ -->
     <div class="grid grid-cols-4 gap-2 text-center">
-      <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-2.5">
-        <div id="stat-total" class="text-lg font-bold text-indigo-600">0</div>
-        <div class="text-[11px] text-indigo-500 font-medium">ยื่นทั้งหมด</div>
+      <div onclick="setFilter('ทั้งหมด')" class="cursor-pointer bg-[#F3EEFF] border border-[#7C5CFC]/30 rounded-2xl p-2.5 transition active:scale-95">
+        <div id="stat-total" class="text-lg font-bold text-slate-900">0</div>
+        <div class="text-[11px] text-slate-600 font-medium">ยื่นทั้งหมด</div>
       </div>
-      <div class="bg-amber-50 border border-amber-100 rounded-2xl p-2.5">
-        <div id="stat-preparing" class="text-lg font-bold text-amber-600">0</div>
-        <div class="text-[11px] text-amber-500 font-medium">กำลังทำ</div>
+      <div onclick="setFilter('กำลังเตรียม')" class="cursor-pointer bg-[#FFF6E5] border border-amber-200/60 rounded-2xl p-2.5 transition active:scale-95">
+        <div id="stat-preparing" class="text-lg font-bold text-slate-900">0</div>
+        <div class="text-[11px] text-slate-600 font-medium">กำลังทำ</div>
       </div>
-      <div class="bg-sky-50 border border-sky-100 rounded-2xl p-2.5">
-        <div id="stat-interview" class="text-lg font-bold text-sky-600">0</div>
-        <div class="text-[11px] text-sky-500 font-medium">สัมภาษณ์</div>
+      <div onclick="setFilter('รอสัมภาษณ์')" class="cursor-pointer bg-[#FFEBF0] border border-rose-200/60 rounded-2xl p-2.5 transition active:scale-95">
+        <div id="stat-interview" class="text-lg font-bold text-slate-900">0</div>
+        <div class="text-[11px] text-slate-600 font-medium">สัมภาษณ์</div>
       </div>
-      <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-2.5">
-        <div id="stat-passed" class="text-lg font-bold text-emerald-600">0</div>
-        <div class="text-[11px] text-emerald-500 font-medium">ติดแล้ว</div>
+      <div onclick="setFilter('ผ่านการคัดเลือก')" class="cursor-pointer bg-[#E6F8ED] border border-emerald-200/60 rounded-2xl p-2.5 transition active:scale-95">
+        <div id="stat-passed" class="text-lg font-bold text-slate-900">0</div>
+        <div class="text-[11px] text-slate-600 font-medium">ติดแล้ว</div>
       </div>
     </div>
 
     <!-- แถบค้นหา -->
     <div class="relative">
-      <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
-      <input type="text" id="searchInput" oninput="renderCards()" placeholder="ค้นหามหาวิทยาลัย คณะ สาขา หรือโครงการ..."
-        class="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
+      <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-4 top-3.5"></i>
+      <input type="text" id="searchInput" oninput="renderCards()" placeholder="ค้นหามหาวิทยาลัย คณะ หรือสาขา..."
+        class="w-full bg-white border border-slate-200/80 rounded-2xl pl-11 pr-4 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 transition">
+    </div>
+
+    <!-- แถบตัวกรองหมวดหมู่ (Filter Chips) -->
+    <div id="filterChips" class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+      <button onclick="setFilter('ทั้งหมด')" data-filter="ทั้งหมด" class="filter-chip whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-medium bg-[#E8DEF8] text-[#1D192B] transition">ทั้งหมด</button>
+      <button onclick="setFilter('ติดดาว')" data-filter="ติดดาว" class="filter-chip whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 transition">ติดดาว ⭐</button>
+      <button onclick="setFilter('กำลังเตรียม')" data-filter="กำลังเตรียม" class="filter-chip whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 transition">กำลังเตรียม</button>
+      <button onclick="setFilter('ส่งแล้ว')" data-filter="ส่งแล้ว" class="filter-chip whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 transition">ส่งแล้ว</button>
+      <button onclick="setFilter('รอสัมภาษณ์')" data-filter="รอสัมภาษณ์" class="filter-chip whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 transition">รอสัมภาษณ์</button>
+      <button onclick="setFilter('ผ่านการคัดเลือก')" data-filter="ผ่านการคัดเลือก" class="filter-chip whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 transition">ผ่านการคัดเลือก</button>
     </div>
 
     <!-- รายการการ์ดโครงการ -->
-    <div id="cardList" class="space-y-3 pb-24">
+    <div id="cardList" class="space-y-3.5 pb-16">
       <div class="text-center py-12 text-slate-400 text-sm">กำลังโหลดข้อมูล...</div>
     </div>
   </main>
 
-  <!-- ปุ่มเพิ่มโครงการ (FAB) -->
-  <div class="fixed bottom-6 right-6 z-20 pb-safe">
-    <button onclick="openAddModal()" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-3 rounded-full shadow-lg shadow-indigo-600/30 active:scale-95 transition">
+  <!-- ==================== TAB 2: หน้าปฏิทิน (CALENDAR) ==================== -->
+  <main id="tab-calendar" class="hidden flex-1 max-w-md mx-auto w-full p-4 space-y-4">
+    <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+      <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+        <i data-lucide="calendar-days" class="w-5 h-5 text-purple-600"></i> กำหนดการสำคัญทั้งหมด
+      </h2>
+      <p class="text-xs text-slate-500 mt-0.5">เรียงตามลำดับวันที่จากใกล้ที่สุด (เปิดรับ, ปิดรับ, ชำระเงิน, สัมภาษณ์)</p>
+    </div>
+    <div id="calendarList" class="space-y-3 pb-16"></div>
+  </main>
+
+  <!-- ==================== TAB 3: โน้ต & เครื่องมือ (NOTES & TOOLS) ==================== -->
+  <main id="tab-tools" class="hidden flex-1 max-w-md mx-auto w-full p-4 space-y-4 pb-16">
+    <!-- คลังเอกสารกลาง -->
+    <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm space-y-3">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <i data-lucide="folder-kanban" class="w-4 h-4 text-purple-600"></i> คลังเอกสารและลิงก์ทั้งหมด
+          </h2>
+          <p class="text-[11px] text-slate-400">รวบรวมไฟล์พอร์ต สลิป และเอกสารจากทุกโครงการ</p>
+        </div>
+        <label class="cursor-pointer bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-medium px-3 py-1.5 rounded-xl flex items-center gap-1 transition">
+          <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i> อัปโหลดไฟล์ลอย
+          <input type="file" class="hidden" onchange="quickUploadToDrive(event)">
+        </label>
+      </div>
+      <div id="quickUploadStatus" class="hidden text-xs text-purple-600 bg-purple-50 p-2.5 rounded-xl"></div>
+      <div id="vaultList" class="space-y-2 max-h-60 overflow-y-auto"></div>
+    </div>
+
+    <!-- สมุดโน้ตช่วยจำ -->
+    <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm space-y-3">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <i data-lucide="notebook-pen" class="w-4 h-4 text-purple-600"></i> สมุดโน้ตส่วนตัว (Scratchpad)
+          </h2>
+          <p class="text-[11px] text-slate-400">บันทึกคะแนน TGAT/TPAT รหัสประจำตัว หรือสิ่งที่ต้องทำ</p>
+        </div>
+        <span id="noteSavedBadge" class="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full hidden">บันทึกแล้ว</span>
+      </div>
+      <textarea id="globalScratchpad" rows="7" oninput="saveScratchpad()" placeholder="พิมพ์บันทึกช่วยจำส่วนตัวที่นี่... (บันทึกอัตโนมัติในเครื่อง)"
+        class="w-full border border-slate-200 rounded-xl p-3 text-xs leading-relaxed focus:outline-none focus:border-purple-500"></textarea>
+    </div>
+  </main>
+
+  <!-- ปุ่มลอยเพิ่มโครงการ (FAB) -->
+  <div id="fabContainer" class="fixed bottom-20 right-5 z-20">
+    <button onclick="openProjectModal()" class="flex items-center gap-2 bg-[#6750A4] hover:bg-[#564090] text-white font-medium px-5 py-3.5 rounded-2xl shadow-lg shadow-purple-900/25 active:scale-95 transition">
       <i data-lucide="plus" class="w-5 h-5"></i>
-      <span>เพิ่มโครงการ</span>
+      <span class="text-sm">เพิ่มโครงการ</span>
     </button>
   </div>
 
-  <!-- ป๊อปอัปตั้งค่า URL Web App -->
-  <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-xl">
-      <h3 class="text-base font-bold text-slate-800">ตั้งค่าการเชื่อมต่อ (Web App URL)</h3>
-      <p class="text-xs text-slate-500 leading-relaxed">
-        ระบุลิงก์ Google Apps Script ประจำตัวของคุณที่ลงท้ายด้วย <code class="bg-slate-100 px-1 py-0.5 rounded text-indigo-600 font-mono">/exec</code>
-      </p>
-      <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec"
-        class="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:border-indigo-500 font-mono">
-      <div class="flex gap-2 justify-end pt-1">
-        <button type="button" onclick="closeSettingsModal()" class="px-4 py-2 text-xs text-slate-500 hover:text-slate-700">ยกเลิก</button>
-        <button type="button" onclick="saveSettings()" class="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition">บันทึก</button>
-      </div>
+  <!-- แถบเมนูด้านล่าง (Bottom Navigation Bar) -->
+  <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200/80 z-30 pb-safe">
+    <div class="max-w-md mx-auto grid grid-cols-3 py-1.5 text-center">
+      <button onclick="switchTab('projects')" id="nav-projects" class="flex flex-col items-center py-1 text-[#6750A4]">
+        <div id="nav-pill-projects" class="px-4 py-1 rounded-full bg-[#E8DEF8] mb-0.5">
+          <i data-lucide="layout-grid" class="w-4 h-4"></i>
+        </div>
+        <span class="text-[11px] font-medium">โครงการ</span>
+      </button>
+      <button onclick="switchTab('calendar')" id="nav-calendar" class="flex flex-col items-center py-1 text-slate-500">
+        <div id="nav-pill-calendar" class="px-4 py-1 rounded-full mb-0.5">
+          <i data-lucide="calendar" class="w-4 h-4"></i>
+        </div>
+        <span class="text-[11px] font-medium">ปฏิทิน</span>
+      </button>
+      <button onclick="switchTab('tools')" id="nav-tools" class="flex flex-col items-center py-1 text-slate-500">
+        <div id="nav-pill-tools" class="px-4 py-1 rounded-full mb-0.5">
+          <i data-lucide="bookmark" class="w-4 h-4"></i>
+        </div>
+        <span class="text-[11px] font-medium">โน้ต & เครื่องมือ</span>
+      </button>
     </div>
-  </div>
+  </nav>
 
-  <!-- ป๊อปอัปแบบฟอร์มเพิ่มโครงการ -->
-  <div id="addModal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-white rounded-t-3xl sm:rounded-2xl max-w-md w-full p-6 space-y-4 max-h-[85vh] overflow-y-auto">
-      <div class="flex justify-between items-center border-b pb-3">
-        <h3 class="font-bold text-slate-800 text-base">เพิ่มโครงการใหม่</h3>
-        <button type="button" onclick="closeAddModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+  <!-- ==================== MODAL 1: เพิ่ม / แก้ไข โครงการ ==================== -->
+  <div id="projectModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl max-w-md w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-3 sticky top-0 bg-white z-10">
+        <h3 id="modalTitle" class="font-bold text-slate-800 text-base">เพิ่มโครงการใหม่</h3>
+        <button type="button" onclick="closeProjectModal()" class="p-1 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
-      <form id="projectForm" onsubmit="submitProject(event)" class="space-y-3 text-xs">
-        <div>
-          <label class="font-medium text-slate-600 block mb-1">มหาวิทยาลัย *</label>
-          <input type="text" id="formUniv" required placeholder="เช่น จุฬาลงกรณ์มหาวิทยาลัย, สจล." class="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-indigo-500">
-        </div>
-        <div>
-          <label class="font-medium text-slate-600 block mb-1">คณะ *</label>
-          <input type="text" id="formFac" required placeholder="เช่น วิศวกรรมศาสตร์" class="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-indigo-500">
-        </div>
-        <div>
-          <label class="font-medium text-slate-600 block mb-1">สาขาวิชา / หลักสูตร *</label>
-          <input type="text" id="formMajor" required placeholder="เช่น วิศวกรรมเซมิคอนดักเตอร์" class="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-indigo-500">
-        </div>
-        <div>
-          <label class="font-medium text-slate-600 block mb-1">โครงการที่เปิดรับ *</label>
-          <input type="text" id="formProj" required placeholder="เช่น ช้างเผือก, สอวน., เรียนดี" class="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-indigo-500">
-        </div>
-        <div>
-          <label class="font-medium text-slate-600 block mb-1">สถานะการสมัคร</label>
-          <select id="formStatus" class="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:border-indigo-500 bg-white">
-            <option value="กำลังเตรียมพอร์ต">กำลังเตรียมพอร์ต</option>
-            <option value="ส่งเอกสารแล้ว">ส่งเอกสารแล้ว</option>
-            <option value="รอสัมภาษณ์">รอสัมภาษณ์</option>
-            <option value="ผ่านการคัดเลือก">ผ่านการคัดเลือก</option>
-            <option value="ไม่ผ่าน">ไม่ผ่าน</option>
-          </select>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
+
+      <form id="projectForm" onsubmit="submitProject(event)" class="space-y-3.5 text-xs">
+        <input type="hidden" id="formId">
+
+        <!-- ข้อมูลหลัก -->
+        <div class="grid grid-cols-1 gap-3">
           <div>
-            <label class="font-medium text-slate-600 block mb-1">วันเปิดรับ</label>
-            <input type="date" id="formStart" class="w-full border border-slate-200 rounded-xl p-2 text-xs focus:outline-none focus:border-indigo-500">
+            <label class="font-medium text-slate-700 block mb-1">มหาวิทยาลัย *</label>
+            <input type="text" id="formUniv" required placeholder="เช่น สจล., จุฬาฯ, มศว" class="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-purple-600">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="font-medium text-slate-700 block mb-1">คณะ *</label>
+              <input type="text" id="formFac" required placeholder="เช่น วิศวกรรมศาสตร์" class="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:border-purple-600">
+            </div>
+            <div>
+              <label class="font-medium text-slate-700 block mb-1">สาขาวิชา / หลักสูตร *</label>
+              <input type="text" id="formMajor" required placeholder="เช่น เซมิคอนดักเตอร์" class="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:border-purple-600">
+            </div>
           </div>
           <div>
-            <label class="font-medium text-slate-600 block mb-1">วันปิดรับ</label>
-            <input type="date" id="formEnd" class="w-full border border-slate-200 rounded-xl p-2 text-xs focus:outline-none focus:border-indigo-500">
+            <label class="font-medium text-slate-700 block mb-1">โครงการที่เปิดรับ *</label>
+            <input type="text" id="formProj" required placeholder="เช่น Portfolio รอบ 1, โครงการช้างเผือก" class="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:border-purple-600">
           </div>
         </div>
-        <div>
-          <label class="font-medium text-slate-600 block mb-1">แนบไฟล์พอร์ต/เอกสารเข้า Drive (PDF, รูป)</label>
-          <input type="file" id="formFile" accept=".pdf,image/*" class="w-full text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:bg-indigo-50 file:text-indigo-600 file:font-medium">
+
+        <!-- สถานะและติดดาว -->
+        <div class="grid grid-cols-3 gap-2 items-end">
+          <div class="col-span-2">
+            <label class="font-medium text-slate-700 block mb-1">สถานะการสมัคร</label>
+            <select id="formStatus" class="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-white focus:outline-none focus:border-purple-600">
+              <option value="กำลังเตรียมพอร์ต">กำลังเตรียมพอร์ต</option>
+              <option value="ส่งเอกสารแล้ว">ส่งเอกสารแล้ว</option>
+              <option value="รอสัมภาษณ์">รอสัมภาษณ์</option>
+              <option value="ผ่านการคัดเลือก">ผ่านการคัดเลือก</option>
+              <option value="ไม่ผ่าน">ไม่ผ่าน</option>
+            </select>
+          </div>
+          <label class="flex items-center justify-center gap-1.5 border border-amber-200 bg-amber-50/60 rounded-xl p-2.5 cursor-pointer select-none">
+            <input type="checkbox" id="formStarred" class="accent-amber-500 w-4 h-4">
+            <span class="text-xs font-medium text-amber-800">ติดดาว ⭐</span>
+          </label>
         </div>
-        <button type="submit" id="btnSubmit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-xl mt-4 active:scale-98 transition flex justify-center items-center gap-2">
+
+        <!-- กำหนดการ 4 วันสำคัญ -->
+        <div class="bg-slate-50 p-3 rounded-2xl space-y-2.5 border border-slate-100">
+          <div class="font-semibold text-slate-700 text-xs flex items-center gap-1.5">
+            <i data-lucide="calendar-clock" class="w-4 h-4 text-purple-600"></i> กำหนดการสำคัญ
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] text-slate-500 block mb-1">วันเปิดรับสมัคร</label>
+              <input type="date" id="formStart" class="w-full border border-slate-200 bg-white rounded-xl p-2 text-xs">
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-500 block mb-1">วันปิดรับสมัคร</label>
+              <input type="date" id="formEnd" class="w-full border border-slate-200 bg-white rounded-xl p-2 text-xs">
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-500 block mb-1">วันสุดท้ายชำระเงิน</label>
+              <input type="date" id="formPaymentDate" class="w-full border border-slate-200 bg-white rounded-xl p-2 text-xs">
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-500 block mb-1">วันสัมภาษณ์</label>
+              <input type="date" id="formInterviewDate" class="w-full border border-slate-200 bg-white rounded-xl p-2 text-xs">
+            </div>
+          </div>
+        </div>
+
+        <!-- ลิงก์และไฟล์แนบ (6 รายการเช็กลิสต์) -->
+        <div class="bg-purple-50/50 p-3 rounded-2xl space-y-3 border border-purple-100/80">
+          <div class="font-semibold text-slate-700 text-xs flex items-center gap-1.5">
+            <i data-lucide="check-square" class="w-4 h-4 text-purple-600"></i> รายการสิ่งที่ต้องเตรียม (เช็กลิสต์ 6 ข้อ)
+          </div>
+
+          <div>
+            <label class="text-[11px] text-slate-600 block mb-1">1. เว็บไซต์ระบบรับสมัคร (URL)</label>
+            <input type="url" id="formPortalUrl" placeholder="https://admission..." class="w-full border border-slate-200 bg-white rounded-xl p-2 text-xs">
+          </div>
+
+          <!-- ไฟล์ Portfolio -->
+          <div class="space-y-1">
+            <label class="text-[11px] text-slate-600 block">2. เล่ม Portfolio (วางลิงก์ หรือ อัปโหลดไฟล์เข้า Drive)</label>
+            <input type="text" id="formPortfolioUrl" placeholder="ลิงก์ไฟล์ Portfolio ใน Drive..." class="w-full border border-slate-200 bg-white rounded-xl p-2 text-xs">
+            <input type="file" id="filePortfolio" accept=".pdf,image/*" class="w-full text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:bg-purple-100 file:text-purple-700">
+          </div>
+
+          <!-- ไฟล์สลิปโอนเงิน -->
+          <div class="space-y-1">
+            <label class="text-[11px] text-slate-600 block">3. สลิปโอนเงิน / หลักฐานชำระเงิน</label>
+            <input type="text" id="formPaymentUrl" placeholder="ลิงก์สลิปโอนเงิน..." class="w-full border border-slate-200 bg-white rounded-xl p-2 text-xs">
+            <input type="file" id="filePayment" accept=".pdf,image/*" class="w-full text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:bg-purple-100 file:text-purple-700">
+          </div>
+
+          <!-- เอกสารประกอบอื่นๆ -->
+          <div class="space-y-1">
+            <label class="text-[11px] text-slate-600 block">4. เอกสารประกอบอื่น ๆ (ปพ.1, ใบรับรอง, ฯลฯ)</label>
+            <input type="text" id="formExtraDocs" placeholder="ระบุเอกสาร หรือ ลิงก์ไฟล์..." class="w-full border border-slate-200 bg-white rounded-xl p-2 text-xs">
+            <input type="file" id="fileExtra" accept=".pdf,image/*" class="w-full text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:bg-purple-100 file:text-purple-700">
+          </div>
+
+          <div>
+            <label class="text-[11px] text-slate-600 block mb-1">5. คุณสมบัติ & เกณฑ์ขั้นต่ำ (GPAX / คะแนนสอบ)</label>
+            <input type="text" id="formRequirements" placeholder="เช่น GPAX >= 3.25, TGAT >= 60" class="w-full border border-slate-200 bg-white rounded-xl p-2 text-xs">
+          </div>
+
+          <div>
+            <label class="text-[11px] text-slate-600 block mb-1">6. บันทึกช่วยจำ / เลขที่ผู้สมัคร</label>
+            <textarea id="formNotes" rows="2" placeholder="จดเลขที่ใบสมัคร รหัสผ่าน หรือหมายเหตุ..." class="w-full border border-slate-200 bg-white rounded-xl p-2 text-xs"></textarea>
+          </div>
+        </div>
+
+        <button type="submit" id="btnSubmit" class="w-full bg-[#6750A4] hover:bg-[#564090] text-white font-medium py-3 rounded-xl mt-2 active:scale-98 transition flex justify-center items-center gap-2 shadow-md">
           <span>บันทึกข้อมูล</span>
         </button>
       </form>
     </div>
   </div>
 
+  <!-- ==================== MODAL 2: ศูนย์แจ้งเตือนวันสำคัญ ==================== -->
+  <div id="alertModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-xl max-h-[80vh] flex flex-col">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div class="flex items-center gap-2">
+          <i data-lucide="bell-ring" class="w-5 h-5 text-rose-500"></i>
+          <h3 class="text-base font-bold text-slate-800">แจ้งเตือนกำหนดการใกล้ถึง</h3>
+        </div>
+        <button onclick="closeAlertModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div id="alertModalList" class="space-y-2.5 overflow-y-auto flex-1 pr-1"></div>
+      <div class="pt-2 border-t flex justify-between items-center">
+        <button onclick="requestBrowserNotification()" class="text-xs text-purple-600 font-medium hover:underline flex items-center gap-1">
+          <i data-lucide="smartphone" class="w-3.5 h-3.5"></i> เปิดแจ้งเตือนบนเครื่อง
+        </button>
+        <button onclick="closeAlertModal()" class="px-4 py-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 3: ตั้งค่า URL Web App ==================== -->
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-xl">
+      <h3 class="text-base font-bold text-slate-800">ตั้งค่าการเชื่อมต่อ (Web App URL)</h3>
+      <p class="text-xs text-slate-500 leading-relaxed">
+        ระบุลิงก์ Google Apps Script ประจำตัวที่ลงท้ายด้วย <code class="bg-slate-100 px-1 py-0.5 rounded text-purple-700 font-mono">/exec</code>
+      </p>
+      <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec"
+        class="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:border-purple-600 font-mono">
+      <div class="flex gap-2 justify-end pt-1">
+        <button type="button" onclick="closeSettingsModal()" class="px-4 py-2 text-xs text-slate-500">ยกเลิก</button>
+        <button type="button" onclick="saveSettings()" class="px-4 py-2 text-xs bg-[#6750A4] text-white font-medium rounded-xl">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let appData = [];
+    let currentFilter = 'ทั้งหมด';
+    let expandedCards = {};
     const STORAGE_KEY = 'tcas_mate_script_url';
+    const SCRATCHPAD_KEY = 'tcas_mate_scratchpad';
 
-    // ลงทะเบียน Service Worker สำหรับการทำงานแบบ PWA
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(console.error);
     }
@@ -174,6 +369,7 @@
 
     window.onload = () => {
       lucide.createIcons();
+      document.getElementById('globalScratchpad').value = localStorage.getItem(SCRATCHPAD_KEY) || '';
       if (!getScriptUrl()) {
         openSettingsModal();
       } else {
@@ -181,6 +377,610 @@
       }
     };
 
+    // ==================== สลับแท็บเมนู ====================
+    function switchTab(tab) {
+      ['projects', 'calendar', 'tools'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add('hidden');
+        document.getElementById(`nav-${t}`).className = 'flex flex-col items-center py-1 text-slate-500';
+        document.getElementById(`nav-pill-${t}`).className = 'px-4 py-1 rounded-full mb-0.5';
+      });
+      document.getElementById(`tab-${tab}`).classList.remove('hidden');
+      document.getElementById(`nav-${tab}`).className = 'flex flex-col items-center py-1 text-[#6750A4]';
+      document.getElementById(`nav-pill-${tab}`).className = 'px-4 py-1 rounded-full bg-[#E8DEF8] mb-0.5';
+
+      document.getElementById('fabContainer').style.display = (tab === 'projects') ? 'block' : 'none';
+
+      if (tab === 'calendar') renderCalendarTab();
+      if (tab === 'tools') renderToolsTab();
+      lucide.createIcons();
+    }
+
+    // ==================== จัดการวันที่และนับถอยหลัง ====================
+    function parseDateOnly(dateStr) {
+      if (!dateStr) return null;
+      const clean = String(dateStr).trim().replace(/^'/, '');
+      const match = clean.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (match) {
+        return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+      }
+      const d = new Date(clean);
+      return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+
+    function getDaysRemaining(dateStr) {
+      const target = parseDateOnly(dateStr);
+      if (!target) return null;
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      return Math.round((target - today) / (1000 * 60 * 60 * 24));
+    }
+
+    function formatThaiDate(dateStr) {
+      const d = parseDateOnly(dateStr);
+      if (!d) return dateStr || '-';
+      const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+      return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+    }
+
+    function getCountdownBadge(days, prefix = 'ปิดรับ') {
+      if (days === null) return '';
+      if (days < 0) return `<span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-400">ผ่านไปแล้ว ${Math.abs(days)} วัน</span>`;
+      if (days === 0) return `<span class="text-[10px] px-2 py-0.5 rounded-md bg-rose-600 text-white font-bold animate-pulse">${prefix}วันนี้!</span>`;
+      if (days === 1) return `<span class="text-[10px] px-2 py-0.5 rounded-md bg-rose-500 text-white font-bold">${prefix}พรุ่งนี้!</span>`;
+      if (days <= 3) return `<span class="text-[10px] px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 font-bold">เหลือ ${days} วัน</span>`;
+      if (days <= 7) return `<span class="text-[10px] px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-semibold">อีก ${days} วัน</span>`;
+      return `<span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-medium">เหลือ ${days} วัน</span>`;
+    }
+
+    // ==================== ดึงและแปลงข้อมูล ====================
+    function normalizeItem(d) {
+      return {
+        id: String(d.id || d["ID"] || "").trim(),
+        university: String(d.university || d["มหาวิทยาลัย"] || "").trim(),
+        faculty: String(d.faculty || d["คณะ"] || "").trim(),
+        major: String(d.major || d["สาขาวิชา / หลักสูตร"] || "").trim(),
+        project: String(d.project || d["โครงการที่เปิดรับ"] || "").trim(),
+        status: String(d.status || d["สถานะการสมัคร"] || "กำลังเตรียมพอร์ต").trim(),
+        startDateStr: String(d.startDateStr || d["วันเปิดรับสมัคร"] || "").replace(/^'/, '').trim(),
+        endDateStr: String(d.endDateStr || d["วันปิดรับสมัคร"] || "").replace(/^'/, '').trim(),
+        deadlinePayment: String(d.deadlinePayment || d["วันสุดท้ายที่ชำระเงิน"] || "").replace(/^'/, '').trim(),
+        interviewDate: String(d.interviewDate || d["วันสัมภาษณ์"] || "").replace(/^'/, '').trim(),
+        portalUrl: String(d.portalUrl || d["เว็บไซต์ระบบรับสมัคร"] || "").trim(),
+        portfolioUrl: String(d.portfolioUrl || d["ลิงก์เล่ม Portfolio"] || "").trim(),
+        paymentProofUrl: String(d.paymentProofUrl || d["ลิงก์สลิปโอนเงิน / หลักฐาน"] || "").trim(),
+        extraDocs: String(d.extraDocs || d["เอกสารประกอบอื่น ๆ"] || "").trim(),
+        requirements: String(d.requirements || d["คุณสมบัติ & เกณฑ์ขั้นต่ำ"] || "").trim(),
+        notes: String(d.notes || d["บันทึกช่วยจำ / เลขที่ผู้สมัคร"] || "").trim(),
+        isStarred: String(d.isStarred || d["ติดดาว"] || "false").toLowerCase() === "true"
+      };
+    }
+
+    async function fetchData() {
+      const url = getScriptUrl();
+      if (!url) return;
+      const icon = document.getElementById('refreshIcon');
+      if (icon) icon.classList.add('animate-spin');
+
+      try {
+        const res = await fetch(url);
+        const rawData = await res.json();
+        appData = Array.isArray(rawData) ? rawData.map(normalizeItem) : [];
+        updateStats();
+        checkUrgentDeadlines();
+        renderCards();
+      } catch (err) {
+        document.getElementById('cardList').innerHTML = `<div class="text-center py-12 text-rose-500 text-sm">โหลดข้อมูลไม่สำเร็จ กรุณาตรวจสอบ URL ในการตั้งค่า</div>`;
+      } finally {
+        if (icon) icon.classList.remove('animate-spin');
+      }
+    }
+
+    function updateStats() {
+      document.getElementById('stat-total').innerText = appData.length;
+      document.getElementById('stat-preparing').innerText = appData.filter(d => d.status.includes('เตรียม') || d.status.includes('กำลังทำ')).length;
+      document.getElementById('stat-interview').innerText = appData.filter(d => d.status.includes('สัมภาษณ์')).length;
+      document.getElementById('stat-passed').innerText = appData.filter(d => d.status.includes('ผ่าน') || d.status.includes('ติด')).length;
+    }
+
+    // ==================== ระบบตรวจจับและแจ้งเตือนกำหนดการด่วน ====================
+    function getAllUpcomingEvents() {
+      const events = [];
+      appData.forEach(d => {
+        const title = `${d.university || 'ไม่ระบุ'} (${d.faculty || '-'})`;
+        const pushEv = (dateStr, type) => {
+          const days = getDaysRemaining(dateStr);
+          if (days !== null && days >= -1 && days <= 14) {
+            events.push({ id: d.id, title, project: d.project, type, dateStr, days });
+          }
+        };
+        pushEv(d.endDateStr, 'ปิดรับสมัคร');
+        pushEv(d.deadlinePayment, 'วันสุดท้ายชำระเงิน');
+        pushEv(d.interviewDate, 'วันสอบสัมภาษณ์');
+      });
+      return events.sort((a, b) => a.days - b.days);
+    }
+
+    function checkUrgentDeadlines() {
+      const upcoming = getAllUpcomingEvents().filter(e => e.days >= 0 && e.days <= 7);
+      const badge = document.getElementById('alertBadge');
+      const banner = document.getElementById('urgentBanner');
+
+      if (upcoming.length > 0) {
+        badge.innerText = upcoming.length;
+        badge.classList.remove('hidden');
+        banner.classList.remove('hidden');
+        const first = upcoming[0];
+        const dayText = first.days === 0 ? 'วันนี้!' : first.days === 1 ? 'พรุ่งนี้!' : `อีก ${first.days} วัน`;
+        document.getElementById('urgentTitle').innerText = `แจ้งเตือนด่วน: ${first.type} (${dayText})`;
+        document.getElementById('urgentSub').innerText = `${first.title} — มีทั้งหมด ${upcoming.length} กำหนดการใน 7 วันนี้`;
+      } else {
+        badge.classList.add('hidden');
+        banner.classList.add('hidden');
+      }
+    }
+
+    function openAlertModal() {
+      const events = getAllUpcomingEvents();
+      const list = document.getElementById('alertModalList');
+      if (events.length === 0) {
+        list.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs">ไม่มีกำหนดการเร่งด่วนในช่วง 14 วันนี้</div>`;
+      } else {
+        list.innerHTML = events.map(e => `
+          <div class="p-3 rounded-2xl border ${e.days <= 3 ? 'bg-rose-50/70 border-rose-200' : 'bg-slate-50 border-slate-200'} flex justify-between items-center gap-2">
+            <div>
+              <div class="text-xs font-bold text-slate-800">${e.title}</div>
+              <div class="text-[11px] text-slate-500">${e.type}: ${formatThaiDate(e.dateStr)}</div>
+            </div>
+            ${getCountdownBadge(e.days, '')}
+          </div>
+        `).join('');
+      }
+      document.getElementById('alertModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+    function closeAlertModal() { document.getElementById('alertModal').classList.add('hidden'); }
+
+    function requestBrowserNotification() {
+      if (!('Notification' in window)) {
+        alert('เบราว์เซอร์นี้ไม่รองรับการส่ง Notification');
+        return;
+      }
+      Notification.requestPermission().then(perm => {
+        if (perm === 'granted') {
+          const upcoming = getAllUpcomingEvents().filter(e => e.days >= 0);
+          const body = upcoming.length > 0
+            ? `${upcoming[0].title} - ${upcoming[0].type} (เหลือ ${upcoming[0].days} วัน)`
+            : 'เปิดระบบแจ้งเตือน TCAS Mate สำเร็จแล้ว';
+          new Notification('TCAS Mate แจ้งเตือนกำหนดการ', { body, icon: 'icon-512.png' });
+        }
+      });
+    }
+
+    // ==================== ตัวกรองและเรนเดอร์การ์ดโครงการ ====================
+    function setFilter(filterName) {
+      currentFilter = filterName;
+      document.querySelectorAll('.filter-chip').forEach(btn => {
+        if (btn.dataset.filter === filterName) {
+          btn.className = 'filter-chip whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-medium bg-[#E8DEF8] text-[#1D192B] transition';
+        } else {
+          btn.className = 'filter-chip whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 transition';
+        }
+      });
+      renderCards();
+    }
+
+    function getChecklistItems(d) {
+      return [
+        { label: 'เว็บไซต์รับสมัคร', done: !!d.portalUrl, url: d.portalUrl, text: d.portalUrl },
+        { label: 'ไฟล์เล่ม Portfolio', done: !!d.portfolioUrl, url: d.portfolioUrl, text: d.portfolioUrl },
+        { label: 'หลักฐานชำระเงิน / สลิป', done: !!d.paymentProofUrl, url: d.paymentProofUrl, text: d.paymentProofUrl },
+        { label: 'เอกสารประกอบอื่น ๆ', done: !!d.extraDocs, url: d.extraDocs.startsWith('http') ? d.extraDocs : '', text: d.extraDocs },
+        { label: 'คุณสมบัติ & เกณฑ์ขั้นต่ำ', done: !!d.requirements, url: '', text: d.requirements },
+        { label: 'บันทึกช่วยจำ / เลขผู้สมัคร', done: !!d.notes, url: '', text: d.notes }
+      ];
+    }
+
+    function toggleExpandCard(id) {
+      expandedCards[id] = !expandedCards[id];
+      renderCards();
+    }
+
+    function renderCards() {
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      const list = document.getElementById('cardList');
+
+      const filtered = appData.filter(d => {
+        const matchQ = !q ||
+          d.university.toLowerCase().includes(q) ||
+          d.faculty.toLowerCase().includes(q) ||
+          d.major.toLowerCase().includes(q) ||
+          d.project.toLowerCase().includes(q);
+        if (!matchQ) return false;
+
+        if (currentFilter === 'ติดดาว') return d.isStarred;
+        if (currentFilter === 'กำลังเตรียม') return d.status.includes('เตรียม');
+        if (currentFilter === 'ส่งแล้ว') return d.status.includes('ส่ง');
+        if (currentFilter === 'รอสัมภาษณ์') return d.status.includes('สัมภาษณ์');
+        if (currentFilter === 'ผ่านการคัดเลือก') return d.status.includes('ผ่าน') || d.status.includes('ติด');
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        list.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm">ไม่พบโครงการในหมวดหมู่นี้</div>';
+        return;
+      }
+
+      list.innerHTML = filtered.map((d, idx) => {
+        const cardKey = d.id || `idx_${idx}`;
+        const univChar = (d.university || 'ม').charAt(0);
+        const daysEnd = getDaysRemaining(d.endDateStr);
+        const daysPay = getDaysRemaining(d.deadlinePayment);
+        const daysInt = getDaysRemaining(d.interviewDate);
+
+        const checks = getChecklistItems(d);
+        const doneCount = checks.filter(c => c.done).length;
+        const pct = Math.round((doneCount / 6) * 100);
+        const isExpanded = !!expandedCards[cardKey];
+
+        let statusClass = 'bg-slate-100 text-slate-700';
+        if (d.status.includes('ผ่าน')) statusClass = 'bg-emerald-100 text-emerald-800';
+        else if (d.status.includes('สัมภาษณ์')) statusClass = 'bg-rose-100 text-rose-800';
+        else if (d.status.includes('ส่ง')) statusClass = 'bg-sky-100 text-sky-800';
+
+        return `
+          <div class="bg-white border border-purple-100/80 rounded-3xl p-4 shadow-sm space-y-3">
+            <!-- แถวบนสุด: โลโก้ย่อ + ดาว + สถานะ -->
+            <div class="flex justify-between items-center">
+              <div class="w-10 h-10 rounded-full bg-[#EADDFF] text-[#21005D] flex items-center justify-center font-bold text-sm">
+                ${univChar}
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="toggleStar('${d.id}')" class="p-1.5 rounded-full hover:bg-amber-50 transition" title="ติดดาว">
+                  <i data-lucide="star" class="w-5 h-5 ${d.isStarred ? 'fill-amber-400 text-amber-400' : 'text-slate-400'}"></i>
+                </button>
+                <span class="text-xs px-3 py-1 rounded-full font-medium ${statusClass}">
+                  ${d.status}
+                </span>
+              </div>
+            </div>
+
+            <!-- ชื่อมหาวิทยาลัย คณะ โครงการ -->
+            <div class="space-y-0.5">
+              <h3 class="font-bold text-slate-900 text-base">${d.university || 'ยังไม่ระบุมหาวิทยาลัย'}</h3>
+              <p class="text-xs text-slate-600">${d.faculty || '-'} ${d.major ? '· ' + d.major : ''}</p>
+              <p class="text-xs text-slate-500 pt-1">โครงการ: <span class="text-slate-800 font-medium">${d.project || '-'}</span></p>
+            </div>
+
+            <hr class="border-slate-100">
+
+            <!-- วันรับสมัคร + นับถอยหลัง -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2 text-xs text-slate-700 font-medium">
+                  <i data-lucide="calendar" class="w-4 h-4 text-[#6750A4]"></i>
+                  <span>${formatThaiDate(d.startDateStr)} ถึง ${formatThaiDate(d.endDateStr)}</span>
+                </div>
+                ${getCountdownBadge(daysEnd, 'ปิดรับ')}
+              </div>
+              <div class="text-[11px] text-slate-400 pl-6">วันรับสมัคร (เปิด 08:30 • ปิด 16:30 น.)</div>
+
+              ${d.deadlinePayment ? `
+                <div class="flex items-center justify-between pl-6 pt-1 text-xs text-slate-600">
+                  <span>💳 ชำระเงินภายใน: ${formatThaiDate(d.deadlinePayment)}</span>
+                  ${getCountdownBadge(daysPay, 'ชำระเงิน')}
+                </div>
+              ` : ''}
+
+              ${d.interviewDate ? `
+                <div class="flex items-center justify-between pl-6 pt-1 text-xs text-slate-600">
+                  <span>🎤 สอบสัมภาษณ์: ${formatThaiDate(d.interviewDate)}</span>
+                  ${getCountdownBadge(daysInt, 'สัมภาษณ์')}
+                </div>
+              ` : ''}
+            </div>
+
+            <!-- กล่องความคืบหน้าสิ่งที่ต้องเตรียม 0/6 -->
+            <div class="bg-[#F5F2FA] rounded-2xl p-3 space-y-2">
+              <div class="flex justify-between items-center text-xs font-semibold text-slate-700">
+                <span>สิ่งที่ต้องเตรียม</span>
+                <span class="text-[#6750A4]">${doneCount}/6 • ${pct}%</span>
+              </div>
+              <div class="w-full h-1.5 bg-purple-200/60 rounded-full overflow-hidden">
+                <div class="h-full bg-[#6750A4] rounded-full transition-all duration-300" style="width: ${pct}%"></div>
+              </div>
+              <button onclick="toggleExpandCard('${cardKey}')" class="w-full flex justify-between items-center pt-1 text-[11px] text-emerald-700 font-medium">
+                <span class="flex items-center gap-1">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> ทำแล้ว ${doneCount} รายการ (แตะเพื่อดู/เปิดไฟล์)
+                </span>
+                <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-4 h-4 text-slate-500"></i>
+              </button>
+
+              ${isExpanded ? `
+                <div class="pt-2 border-t border-purple-200/50 space-y-1.5 text-xs">
+                  ${checks.map(c => `
+                    <div class="flex items-start justify-between gap-2 py-0.5">
+                      <span class="flex items-center gap-1.5 ${c.done ? 'text-slate-800 font-medium' : 'text-slate-400'}">
+                        <i data-lucide="${c.done ? 'check-square' : 'square'}" class="w-3.5 h-3.5 ${c.done ? 'text-emerald-600' : 'text-slate-300'}"></i>
+                        ${c.label}
+                      </span>
+                      ${c.done ? (c.url ? `<a href="${c.url}" target="_blank" class="text-[11px] text-purple-700 underline shrink-0">เปิดลิงก์</a>` : `<span class="text-[11px] text-slate-600 max-w-[140px] truncate">${c.text}</span>`) : '<span class="text-[10px] text-slate-300">ยังไม่ระบุ</span>'}
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+
+            <!-- ปุ่มแอ็กชันด้านล่างการ์ด: ปฏิทิน / แก้ไข / ลบ -->
+            <div class="grid grid-cols-3 gap-2 pt-1 text-xs border-t border-slate-100">
+              <button onclick="addToGoogleCalendar('${d.id}')" class="flex items-center justify-center gap-1.5 py-2 rounded-xl text-slate-600 hover:bg-slate-50 font-medium">
+                <i data-lucide="calendar-plus" class="w-4 h-4"></i> ปฏิทิน
+              </button>
+              <button onclick="openProjectModal('${d.id}')" class="flex items-center justify-center gap-1.5 py-2 rounded-xl text-purple-700 hover:bg-purple-50 font-medium">
+                <i data-lucide="pencil" class="w-4 h-4"></i> แก้ไข
+              </button>
+              <button onclick="deleteProject('${d.id}')" class="flex items-center justify-center gap-1.5 py-2 rounded-xl text-rose-600 hover:bg-rose-50 font-medium">
+                <i data-lucide="trash-2" class="w-4 h-4"></i> ลบ
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    // ==================== แท็บที่ 2: ปฏิทินรวม ====================
+    function renderCalendarTab() {
+      const list = document.getElementById('calendarList');
+      const allEvents = [];
+      appData.forEach(d => {
+        const pushEv = (dateStr, label, color) => {
+          if (!dateStr) return;
+          const days = getDaysRemaining(dateStr);
+          allEvents.push({ id: d.id, univ: d.university, fac: d.faculty, dateStr, label, color, days: days ?? 9999 });
+        };
+        pushEv(d.startDateStr, 'วันเปิดรับสมัคร', 'bg-sky-50 text-sky-700 border-sky-200');
+        pushEv(d.endDateStr, 'วันปิดรับสมัคร', 'bg-rose-50 text-rose-700 border-rose-200');
+        pushEv(d.deadlinePayment, 'วันสุดท้ายชำระเงิน', 'bg-amber-50 text-amber-800 border-amber-200');
+        pushEv(d.interviewDate, 'วันสอบสัมภาษณ์', 'bg-purple-50 text-purple-700 border-purple-200');
+      });
+
+      allEvents.sort((a, b) => a.days - b.days);
+
+      if (allEvents.length === 0) {
+        list.innerHTML = `<div class="text-center py-12 text-slate-400 text-xs">ยังไม่มีข้อมูลวันที่ในระบบ</div>`;
+        return;
+      }
+
+      list.innerHTML = allEvents.map(ev => `
+        <div class="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-sm flex justify-between items-center gap-2">
+          <div class="space-y-1">
+            <span class="text-[10px] px-2 py-0.5 rounded-full border font-medium ${ev.color}">${ev.label}</span>
+            <h4 class="text-xs font-bold text-slate-800 pt-0.5">${ev.univ || '-'} · ${ev.fac || '-'}</h4>
+            <p class="text-[11px] text-slate-500">${formatThaiDate(ev.dateStr)}</p>
+          </div>
+          <div class="text-right space-y-1">
+            <div>${getCountdownBadge(ev.days, '')}</div>
+            <button onclick="addToGoogleCalendar('${ev.id}')" class="text-[10px] text-purple-600 hover:underline block">+ Google Calendar</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function addToGoogleCalendar(id) {
+      const item = appData.find(d => d.id === id);
+      if (!item) return;
+      const targetDate = item.endDateStr || item.interviewDate || item.startDateStr;
+      const d = parseDateOnly(targetDate) || new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const dateParam = `${yyyy}${mm}${dd}/${yyyy}${mm}${dd}`;
+      const title = encodeURIComponent(`[TCAS] ${item.university} - ${item.faculty} (${item.project})`);
+      const details = encodeURIComponent(`สาขา: ${item.major}\nสถานะ: ${item.status}\nเกณฑ์: ${item.requirements}\nโน้ต: ${item.notes}`);
+      window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dateParam}&details=${details}`, '_blank');
+    }
+
+    // ==================== แท็บที่ 3: คลังเอกสาร & สมุดโน้ต ====================
+    function renderToolsTab() {
+      const vault = document.getElementById('vaultList');
+      const docs = [];
+      appData.forEach(d => {
+        if (d.portfolioUrl) docs.push({ title: `Portfolio - ${d.university}`, url: d.portfolioUrl });
+        if (d.paymentProofUrl) docs.push({ title: `สลิปชำระเงิน - ${d.university}`, url: d.paymentProofUrl });
+        if (d.portalUrl) docs.push({ title: `เว็บรับสมัคร - ${d.university}`, url: d.portalUrl });
+      });
+
+      if (docs.length === 0) {
+        vault.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs">ยังไม่มีลิงก์หรือไฟล์แนบในโครงการ</div>`;
+      } else {
+        vault.innerHTML = docs.map(doc => `
+          <a href="${doc.url}" target="_blank" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-purple-50 border border-slate-100 text-xs transition">
+            <span class="font-medium text-slate-700 truncate pr-2">${doc.title}</span>
+            <i data-lucide="external-link" class="w-3.5 h-3.5 text-purple-600 shrink-0"></i>
+          </a>
+        `).join('');
+      }
+    }
+
+    function saveScratchpad() {
+      const val = document.getElementById('globalScratchpad').value;
+      localStorage.setItem(SCRATCHPAD_KEY, val);
+      const badge = document.getElementById('noteSavedBadge');
+      badge.classList.remove('hidden');
+      setTimeout(() => badge.classList.add('hidden'), 1500);
+    }
+
+    async function quickUploadToDrive(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const statusBox = document.getElementById('quickUploadStatus');
+      statusBox.classList.remove('hidden');
+      statusBox.innerText = `กำลังอัปโหลด "${file.name}" เข้า Google Drive...`;
+
+      try {
+        const b64 = await fileToBase64(file);
+        const res = await fetch(getScriptUrl(), {
+          method: 'POST',
+          body: JSON.stringify({ action: 'uploadFile', fileName: file.name, mimeType: file.type, base64Data: b64 })
+        });
+        const json = await res.json();
+        if (json.status === 'success') {
+          statusBox.innerHTML = `อัปโหลดสำเร็จ! <a href="${json.fileUrl}" target="_blank" class="underline font-bold">คลิกเพื่อเปิดดูไฟล์</a>`;
+        } else {
+          statusBox.innerText = 'อัปโหลดไม่สำเร็จ: ' + (json.message || '');
+        }
+      } catch (err) {
+        statusBox.innerText = 'เกิดข้อผิดพลาด: ' + err.message;
+      }
+    }
+
+    // ==================== CRUD: ติดดาว / เพิ่ม / แก้ไข / ลบ ====================
+    async function toggleStar(id) {
+      const item = appData.find(d => d.id === id);
+      if (!item) return;
+      item.isStarred = !item.isStarred;
+      renderCards();
+
+      try {
+        await fetch(getScriptUrl(), {
+          method: 'POST',
+          body: JSON.stringify({ action: 'update', data: { ...item, isStarred: String(item.isStarred) } })
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function openProjectModal(id = '') {
+      document.getElementById('projectForm').reset();
+      if (id) {
+        const item = appData.find(d => d.id === id);
+        if (!item) return;
+        document.getElementById('modalTitle').innerText = 'แก้ไขข้อมูลโครงการ';
+        document.getElementById('formId').value = item.id;
+        document.getElementById('formUniv').value = item.university;
+        document.getElementById('formFac').value = item.faculty;
+        document.getElementById('formMajor').value = item.major;
+        document.getElementById('formProj').value = item.project;
+        document.getElementById('formStatus').value = item.status;
+        document.getElementById('formStarred').checked = item.isStarred;
+        document.getElementById('formStart').value = item.startDateStr;
+        document.getElementById('formEnd').value = item.endDateStr;
+        document.getElementById('formPaymentDate').value = item.deadlinePayment;
+        document.getElementById('formInterviewDate').value = item.interviewDate;
+        document.getElementById('formPortalUrl').value = item.portalUrl;
+        document.getElementById('formPortfolioUrl').value = item.portfolioUrl;
+        document.getElementById('formPaymentUrl').value = item.paymentProofUrl;
+        document.getElementById('formExtraDocs').value = item.extraDocs;
+        document.getElementById('formRequirements').value = item.requirements;
+        document.getElementById('formNotes').value = item.notes;
+      } else {
+        document.getElementById('modalTitle').innerText = 'เพิ่มโครงการใหม่';
+        document.getElementById('formId').value = '';
+      }
+      document.getElementById('projectModal').classList.remove('hidden');
+    }
+
+    function closeProjectModal() {
+      document.getElementById('projectModal').classList.add('hidden');
+    }
+
+    async function deleteProject(id) {
+      const item = appData.find(d => d.id === id);
+      if (!item) return;
+      if (!confirm(`ยืนยันการลบโครงการ "${item.university} - ${item.faculty}" ใช่หรือไม่?`)) return;
+
+      appData = appData.filter(d => d.id !== id);
+      updateStats();
+      renderCards();
+
+      try {
+        await fetch(getScriptUrl(), {
+          method: 'POST',
+          body: JSON.stringify({ action: 'delete', data: { id: item.id, university: item.university, project: item.project } })
+        });
+        await fetchData();
+      } catch (err) {
+        alert('ลบข้อมูลไม่สำเร็จ: ' + err.message);
+      }
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = error => reject(error);
+      });
+    }
+
+    async function uploadSingleFileIfSelected(inputId, scriptUrl) {
+      const input = document.getElementById(inputId);
+      if (!input || input.files.length === 0) return null;
+      const file = input.files[0];
+      const b64 = await fileToBase64(file);
+      const res = await fetch(scriptUrl, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'uploadFile', fileName: file.name, mimeType: file.type, base64Data: b64 })
+      });
+      const json = await res.json();
+      return json.status === 'success' ? json.fileUrl : null;
+    }
+
+    async function submitProject(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btnSubmit');
+      btn.disabled = true;
+      btn.innerHTML = '<span>กำลังบันทึกข้อมูลและอัปโหลดไฟล์...</span>';
+
+      const scriptUrl = getScriptUrl();
+      const existingId = document.getElementById('formId').value.trim();
+      const actionType = existingId ? 'update' : 'create';
+
+      try {
+        const newPortUrl = await uploadSingleFileIfSelected('filePortfolio', scriptUrl);
+        const newPayUrl = await uploadSingleFileIfSelected('filePayment', scriptUrl);
+        const newExtraUrl = await uploadSingleFileIfSelected('fileExtra', scriptUrl);
+
+        const payload = {
+          action: actionType,
+          data: {
+            id: existingId,
+            university: document.getElementById('formUniv').value.trim(),
+            faculty: document.getElementById('formFac').value.trim(),
+            major: document.getElementById('formMajor').value.trim(),
+            project: document.getElementById('formProj').value.trim(),
+            status: document.getElementById('formStatus').value,
+            isStarred: String(document.getElementById('formStarred').checked),
+            startDateStr: document.getElementById('formStart').value,
+            endDateStr: document.getElementById('formEnd').value,
+            deadlinePayment: document.getElementById('formPaymentDate').value,
+            interviewDate: document.getElementById('formInterviewDate').value,
+            portalUrl: document.getElementById('formPortalUrl').value.trim(),
+            portfolioUrl: newPortUrl || document.getElementById('formPortfolioUrl').value.trim(),
+            paymentProofUrl: newPayUrl || document.getElementById('formPaymentUrl').value.trim(),
+            extraDocs: newExtraUrl || document.getElementById('formExtraDocs').value.trim(),
+            requirements: document.getElementById('formRequirements').value.trim(),
+            notes: document.getElementById('formNotes').value.trim()
+          }
+        };
+
+        await fetch(scriptUrl, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+
+        closeProjectModal();
+        await fetchData();
+      } catch (err) {
+        alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>บันทึกข้อมูล</span>';
+      }
+    }
+
+    // ==================== ตั้งค่า URL ====================
     function openSettingsModal() {
       document.getElementById('scriptUrlInput').value = getScriptUrl();
       document.getElementById('settingsModal').classList.remove('hidden');
@@ -194,191 +994,6 @@
         localStorage.setItem(STORAGE_KEY, url);
         closeSettingsModal();
         fetchData();
-      }
-    }
-
-    // ปรับโครงสร้างข้อมูลให้รองรับทั้งคีย์ไทยและคีย์อังกฤษ
-    function normalizeItem(d) {
-      return {
-        id: d.id || d["ID"] || "",
-        university: d.university || d["มหาวิทยาลัย"] || "",
-        faculty: d.faculty || d["คณะ"] || "",
-        major: d.major || d["สาขาวิชา / หลักสูตร"] || "",
-        project: d.project || d["โครงการที่เปิดรับ"] || "",
-        status: d.status || d["สถานะการสมัคร"] || "กำลังเตรียมพอร์ต",
-        startDateStr: d.startDateStr || d["วันเปิดรับสมัคร"] || "",
-        endDateStr: d.endDateStr || d["วันปิดรับสมัคร"] || "",
-        deadlinePayment: d.deadlinePayment || d["วันสุดท้ายที่ชำระเงิน"] || "",
-        interviewDate: d.interviewDate || d["วันสัมภาษณ์"] || "",
-        portalUrl: d.portalUrl || d["เว็บไซต์ระบบรับสมัคร"] || "",
-        portfolioUrl: d.portfolioUrl || d["ลิงก์เล่ม Portfolio"] || "",
-        notes: d.notes || d["บันทึกช่วยจำ / เลขที่ผู้สมัคร"] || "",
-        isStarred: String(d.isStarred || d["ติดดาว"] || "false") === "true"
-      };
-    }
-
-    // ดึงข้อมูลจาก Google Apps Script
-    async function fetchData() {
-      const url = getScriptUrl();
-      if (!url) return;
-      const cardList = document.getElementById('cardList');
-      cardList.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm">กำลังซิงก์ข้อมูล...</div>';
-
-      try {
-        const res = await fetch(url);
-        const rawData = await res.json();
-        appData = Array.isArray(rawData) ? rawData.map(normalizeItem) : [];
-        updateStats();
-        renderCards();
-      } catch (err) {
-        cardList.innerHTML = `<div class="text-center py-12 text-rose-500 text-sm">โหลดข้อมูลไม่สำเร็จ กรุณาตรวจสอบ URL ในการตั้งค่า</div>`;
-      }
-    }
-
-    function updateStats() {
-      document.getElementById('stat-total').innerText = appData.length;
-      document.getElementById('stat-preparing').innerText = appData.filter(d => 
-        d.status.includes('เตรียมพอร์ต') || d.status.includes('กำลังทำ')
-      ).length;
-      document.getElementById('stat-interview').innerText = appData.filter(d => 
-        d.status.includes('สัมภาษณ์')
-      ).length;
-      document.getElementById('stat-passed').innerText = appData.filter(d => 
-        d.status.includes('ผ่าน') || d.status.includes('ติด')
-      ).length;
-    }
-
-    function renderCards() {
-      const q = document.getElementById('searchInput').value.trim().toLowerCase();
-      const list = document.getElementById('cardList');
-      const filtered = appData.filter(d => 
-        (d.university || '').toLowerCase().includes(q) ||
-        (d.faculty || '').toLowerCase().includes(q) ||
-        (d.major || '').toLowerCase().includes(q) ||
-        (d.project || '').toLowerCase().includes(q)
-      );
-
-      if (filtered.length === 0) {
-        list.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm">ไม่พบรายการที่ค้นหา</div>';
-        return;
-      }
-
-      list.innerHTML = filtered.map(d => {
-        const univChar = (d.university || 'ม').trim().charAt(0);
-        let badgeStyle = 'bg-slate-50 text-slate-600 border border-slate-100';
-        if (d.status.includes('ผ่าน') || d.status.includes('ติด')) {
-          badgeStyle = 'bg-emerald-50 text-emerald-600 border border-emerald-100';
-        } else if (d.status.includes('สัมภาษณ์')) {
-          badgeStyle = 'bg-sky-50 text-sky-600 border border-sky-100';
-        } else if (d.status.includes('เตรียมพอร์ต')) {
-          badgeStyle = 'bg-amber-50 text-amber-600 border border-amber-100';
-        }
-
-        return `
-          <div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm space-y-2">
-            <div class="flex justify-between items-start">
-              <span class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
-                ${univChar}
-              </span>
-              <span class="text-[11px] px-2.5 py-0.5 rounded-full font-medium ${badgeStyle}">
-                ${d.status || 'กำลังเตรียมพอร์ต'}
-              </span>
-            </div>
-            <div>
-              <h4 class="font-bold text-slate-800 text-sm">${d.university || '-'}</h4>
-              <p class="text-xs text-slate-500">${d.faculty || '-'} · ${d.major || '-'}</p>
-              <p class="text-xs text-indigo-600 font-medium mt-1">โครงการ: ${d.project || '-'}</p>
-            </div>
-            <div class="text-[11px] text-slate-400 flex items-center gap-1.5 pt-1 border-t border-slate-50">
-              <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
-              <span>${d.startDateStr || '-'} ถึง ${d.endDateStr || '-'}</span>
-            </div>
-            ${d.portfolioUrl ? `
-              <div class="pt-1 border-t border-slate-50">
-                <a href="${d.portfolioUrl}" target="_blank" class="inline-flex items-center gap-1 text-[11px] text-indigo-600 hover:underline">
-                  <i data-lucide="file-text" class="w-3.5 h-3.5"></i> ดูไฟล์พอร์ตใน Google Drive
-                </a>
-              </div>
-            ` : ''}
-          </div>
-        `;
-      }).join('');
-      lucide.createIcons();
-    }
-
-    function openAddModal() { document.getElementById('addModal').classList.remove('hidden'); }
-    function closeAddModal() { document.getElementById('addModal').classList.add('hidden'); }
-
-    // แปลงไฟล์เป็น Base64
-    function fileToBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = error => reject(error);
-      });
-    }
-
-    // บันทึกโครงการใหม่
-    async function submitProject(e) {
-      e.preventDefault();
-      const btn = document.getElementById('btnSubmit');
-      btn.disabled = true;
-      btn.innerHTML = '<span>กำลังบันทึก...</span>';
-
-      const scriptUrl = getScriptUrl();
-      const fileInput = document.getElementById('formFile');
-      let uploadedFileUrl = '';
-
-      try {
-        // ขั้นตอนที่ 1: อัปโหลดไฟล์เข้า Google Drive ถ้ามีการเลือกไฟล์
-        if (fileInput.files.length > 0) {
-          const file = fileInput.files[0];
-          const b64 = await fileToBase64(file);
-          const uploadPayload = {
-            action: 'uploadFile',
-            fileName: file.name,
-            mimeType: file.type,
-            base64Data: b64
-          };
-          const upRes = await fetch(scriptUrl, {
-            method: 'POST',
-            body: JSON.stringify(uploadPayload)
-          });
-          const upJson = await upRes.json();
-          if (upJson.status === 'success') {
-            uploadedFileUrl = upJson.fileUrl;
-          }
-        }
-
-        // ขั้นตอนที่ 2: บันทึกข้อมูลโครงการเข้า Google Sheets
-        const projectPayload = {
-          action: 'create',
-          data: {
-            university: document.getElementById('formUniv').value.trim(),
-            faculty: document.getElementById('formFac').value.trim(),
-            major: document.getElementById('formMajor').value.trim(),
-            project: document.getElementById('formProj').value.trim(),
-            status: document.getElementById('formStatus').value,
-            startDateStr: document.getElementById('formStart').value,
-            endDateStr: document.getElementById('formEnd').value,
-            portfolioUrl: uploadedFileUrl
-          }
-        };
-
-        await fetch(scriptUrl, {
-          method: 'POST',
-          body: JSON.stringify(projectPayload)
-        });
-
-        document.getElementById('projectForm').reset();
-        closeAddModal();
-        await fetchData();
-      } catch (err) {
-        alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<span>บันทึกข้อมูล</span>';
       }
     }
   </script>
